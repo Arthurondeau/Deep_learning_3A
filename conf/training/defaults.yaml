@@ -1,0 +1,29 @@
+mlflow:
+  tracking_uri: ${hydra:runtime.cwd}/mlflow_runs
+  experiment_name: test
+
+
+training_params:
+  n_classes: 6
+  trainer_params:
+    accumulate_grad_batches: 1
+    early_stopping_patience: 70
+    max_epochs: 5
+    val_split: 0.15
+    val: True
+    limit_train_batches: 0.25 # run through only 25% of the training set each epoch
+    overfit_batches: 10 # overfit on 10 of the same batches
+  data_module_params:
+    batch_size: 16
+    num_workers: 8
+  optimization_params:
+    l2_coeff: 5e-4
+    lr_scheduler_gamma: 0.75
+    lr_scheduler_step_size: 10
+    lr: 5e-4
+  
+  features_list:
+    #-EEG_Fpz-CZ
+    - EEG_PZ-Oz
+    - EOG_horizontal
+    #-EMB_submental

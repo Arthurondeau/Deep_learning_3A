@@ -1,0 +1,22 @@
+[ {
+  "name" : "ubuntu20",
+  "configuration" : {
+    "nonPause" : false,
+    "cloudRegionId" : 1,
+    "instance_size" : "p3.2xlarge",
+    "instance_disk" : "1000",
+    "docker_image" : "magellan-docker.sanofi.com:443/library/ubuntu:20.04-cuda11.3.0-cudnn8",
+    "timeout" : 0,
+    "cmd_template" : "sleep infinity",
+    "language" : "other",
+    "parameters" : {
+      "CP_CAP_LIMIT_MOUNTS" : {
+        "value" : "584",
+        "type" : "string",
+        "required" : false
+      }
+    },
+    "is_spot" : false
+  },
+  "default" : true
+} ]

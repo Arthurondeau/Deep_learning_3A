@@ -1,0 +1,12 @@
+transformer_encoder:
+  _target_: src.utils.pyg_model_zoo.TransformerEncoder
+  in_dim: 600
+  hidden_dim: 512
+  n_layers: 6
+  nhead: 8
+  n_classes: 6
+  dropout: 0.1
+
+another_model_type:
+  _target_: your_module.AnotherModelType
+
