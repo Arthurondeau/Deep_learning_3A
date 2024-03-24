@@ -1,0 +1,41 @@
+training:
+  mlflow:
+    tracking_uri: ${hydra:runtime.cwd}/mlflow_runs
+    experiment_name: test
+  training_params:
+    n_classes: 6
+    trainer_params:
+      accumulate_grad_batches: 1
+      early_stopping_patience: 70
+      max_epochs: 5
+      val_split: 0.15
+      val: true
+      limit_train_batches: 0.25
+      overfit_batches: 10
+    data_module_params:
+      batch_size: 16
+      num_workers: 8
+    optimization_params:
+      l2_coeff: 0.0005
+      lr_scheduler_gamma: 0.75
+      lr_scheduler_step_size: 10
+      lr: 0.0005
+    features_list:
+    - EEG_PZ-Oz
+    - EOG_horizontal
+model_dict:
+  transformer_encoder:
+    _target_: src.utils.pyg_model_zoo.TransformerEncoder
+    in_dim: 600
+    hidden_dim: 512
+    n_layers: 6
+    nhead: 8
+    n_classes: 6
+    dropout: 0.1
+  another_model_type:
+    _target_: your_module.AnotherModelType
+save_dir: ${hydra:runtime.cwd}/data
+local_data_npz: ${hydra:runtime.cwd}/data/5-cassette
+training_data: ${hydra:runtime.cwd}/data/cassette-th-data.pck
+training_args:
+  model_type: transformer_encoder
