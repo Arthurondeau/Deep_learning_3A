@@ -8,9 +8,13 @@ source ~/.bashrc
 conda init
 conda create -n DL3A python=3.10 -y
 conda activate DL3A
+cd /content/Deep_learning_3A/
 pip install -r requirements.txt
 
+pip install numpy --upgrade
+pip install TorchText
 
+os.environ['PYTHONPATH'] += ":/content/Deep_learning_3A/"
 
 # pipe storage cp -rfi */csv/* s3://cloud-pipeline-aida-mihc-storage/TMP/IMMUcan/IMC data/raw_data/IMMUcan/IMC
 # pipe storage cp -rfi *PDL1*Detections.txt s3://cloud-pipeline-aida-mihc-storage/TMP/MOSCATO_mIF/export/ data/raw_data/MOSCATO/mIF/
