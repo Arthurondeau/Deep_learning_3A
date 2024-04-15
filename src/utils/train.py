@@ -30,6 +30,7 @@ def model_training(
     Returns:
         Trained model.
     """
+    
     early_stopping = EarlyStopping(
         monitor="train_loss",
         mode="min",
@@ -52,11 +53,12 @@ def model_training(
         log_every_n_steps=25,
         max_epochs=trainer_params.get("max_epochs", -1),
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
-        devices=-1 if torch.cuda.is_available() else None,
+        devices="auto",
         accumulate_grad_batches=trainer_params["accumulate_grad_batches"],
         enable_checkpointing=False,
-        #limit_train_batches=trainer_params["limit_train_batches"],
-        #overfit_batches=trainer_params["overfit_batches"],
+        inference_mode = not trainer_params["adversarial_attack"],
+        limit_train_batches=trainer_params["limit_train_batches"],
+        overfit_batches=trainer_params["overfit_batches"],
     )
     trainer.fit(model=model, datamodule=data_input)
     log.info("Finished training.")

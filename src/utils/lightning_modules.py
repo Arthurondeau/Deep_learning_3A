@@ -1,21 +1,20 @@
-import os
-from typing import Any, Dict, List, Mapping, Tuple
-
 import torch
 import torch.nn.functional as F
-from omegaconf import DictConfig
+from typing import Tuple, Dict, List
+from torchmetrics import Metric, MetricCollection, Accuracy, Precision, Recall, AUROC, AveragePrecision, MeanMetric, MaxMetric
+from torch.utils.data import DataLoader, TensorDataset
+import pickle
+import os
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import MLFlowLogger
-from torchmetrics import Metric, MetricCollection, Accuracy, Precision, Recall, AUROC, AveragePrecision, MeanMetric, MaxMetric
-import pickle
-from torch.utils.data import DataLoader, TensorDataset
 
 class Model(pl.LightningModule):
     def __init__(
         self,
         model: torch.nn.Module,
-        optimization_params: Dict | DictConfig,
-        n_classes: int
+        optimization_params: Dict,
+        n_classes: int,
+        adversarial_training: bool = False
     ):
         super().__init__()
         self.model = model
@@ -26,6 +25,10 @@ class Model(pl.LightningModule):
         self.optimizer, self.scheduler = self.configure_optimizers()
         self.logger: MLFlowLogger
         self.trainer: pl.Trainer
+        self.adversarial_training = adversarial_training
+        self.train_step_outputs = []
+        self.validation_step_outputs = []
+        self.test_step_outputs = []
 
         if n_classes > 2:
             metrics_params = {"task": "multiclass", "num_classes": n_classes}
@@ -41,6 +44,7 @@ class Model(pl.LightningModule):
             self.train_metrics = metrics.clone(prefix="train_")
             self.val_metrics = metrics.clone(prefix="val_")
             self.train_loss = MeanMetric()
+            self.train_acc_best = MaxMetric()
             self.val_loss = MeanMetric()
             self.val_acc_best = MaxMetric()
         else:
@@ -49,51 +53,106 @@ class Model(pl.LightningModule):
     def forward(self, data: torch.Tensor) -> torch.Tensor:
         return self.model(data)
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> Mapping[str, torch.Tensor]:
-        logits = self.forward(batch[0])
-        loss = F.cross_entropy(logits, batch[1].long())
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> Dict[str, torch.Tensor]:
+        x, y = batch
+        if self.adversarial_training : 
+            # Generate adversarial examples using PGD
+            perturbed_x = self.adversarial_attack(x, y)
+            # Compute logits for adversarial examples
+            logits = self.forward(perturbed_x)
+        else : 
+            logits = self.forward(x)
+        # Compute loss using original labels
+        loss = F.cross_entropy(logits, y.long())
         self.train_loss(loss)
-        self.train_metrics(logits, batch[1])
+        self.train_metrics(logits, y)
+        self.train_step_outputs.append(loss)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         return {"loss": loss}
 
+    def adversarial_attack(self, x: torch.Tensor, y: torch.Tensor, epsilon: float = 0.1, alpha: float = 0.01, num_iter: int = 10) -> torch.Tensor:
+        perturbed_x = x.clone().detach()
+        for _ in range(num_iter):
+            perturbed_x.requires_grad = True
+            logits = self.forward(perturbed_x)
+            loss = F.cross_entropy(logits, y.long())
+            self.model.zero_grad()
+            loss.backward()
+            with torch.no_grad():
+                perturbed_x += alpha * torch.sign(perturbed_x.grad)
+                perturbed_x = torch.max(torch.min(perturbed_x, x + epsilon), x - epsilon)
+                # Clamp signal data within its valid range
+                # Adjust this according to the range of your signal data
+                perturbed_x = torch.clamp(perturbed_x, x.min(), x.max())
+        return perturbed_x
+
+
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        logits = self.forward(batch[0])
-        loss = F.cross_entropy(logits, batch[1].long())
+        x, y = batch
+        if self.adversarial_training : 
+            # Generate adversarial examples using PGD
+            with torch.enable_grad():
+                perturbed_x = self.adversarial_attack(x, y)
+            # Compute logits for adversarial examples
+            logits = self.forward(perturbed_x)
+        else : 
+            logits = self.forward(x)
+        # Compute loss using original labels
+        loss = F.cross_entropy(logits, y.long())
         self.val_loss(loss)
-        self.val_metrics(logits, batch[1])
-        self.log("val_loss", loss, on_epoch=True, prog_bar=True)
+        self.val_metrics(logits, y)
+        self.validation_step_outputs.append(loss)
+        self.log("val_loss:", loss, on_epoch=True, prog_bar=True)
+
+    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+        x, y = batch
+        if self.adversarial_training : 
+            # Generate adversarial examples using PGD
+            perturbed_x = self.adversarial_attack(x, y)
+            # Compute logits for adversarial examples
+            logits = self.forward(perturbed_x)
+        else : 
+            logits = self.forward(x)
+        # Compute loss using original labels
+        loss = F.cross_entropy(logits, y.long())
+        self.val_loss(loss)
+        self.val_metrics(logits, y)
+        self.test_step_outputs.append(loss)
+        self.log("test_loss", loss, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[Dict[str, torch.optim.lr_scheduler._LRScheduler]]]:
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         scheduler = {"scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)}
         return [optimizer], [scheduler]
 
-    def training_epoch_end(self, outputs: List[Dict[str, torch.Tensor]]) -> None:
-        self.log_dict(self.train_metrics.compute(), on_epoch=True, prog_bar=True)
-        self.train_loss.reset()
-        self.train_metrics.reset()
+    def on_train_epoch_end(self) -> None:
+        epoch_average = torch.stack(self.train_step_outputs).mean()
+        acc = self.train_metrics.compute()["train_MulticlassAccuracy"]
+        self.train_acc_best(acc)
+        self.log("train_epoch_average with adv" + str(self.adversarial_training), epoch_average)
+        self.log("train_acc_best", self.train_acc_best.compute(), prog_bar=True, sync_dist=True)
+        self.train_step_outputs.clear()  # free memory
 
-    def validation_epoch_end(self, outputs: List[Dict[str, torch.Tensor]]) -> None:
-        self.log_dict(self.val_metrics.compute(), on_epoch=True, prog_bar=True)
-        self.val_loss.reset()
-        self.val_metrics.reset()
-        if not self.trainer.sanity_checking:
-            if len(outputs) > 0:
-                if len(outputs[0]["targets"].shape) == 1:
-                    acc = self.val_metrics.compute()["val_Accuracy"]
-                else:
-                    acc = self.val_metrics.compute()["val_MulticlassAccuracy"]
-                self.val_acc_best(acc)
-                self.log("val_acc_best", self.val_acc_best.compute(), prog_bar=True, sync_dist=True)
+    def on_validation_epoch_end(self) -> None:
+        epoch_average = torch.stack(self.validation_step_outputs).mean()
+        acc = self.val_metrics.compute()["val_MulticlassAccuracy"]
+        self.val_acc_best(acc)
+        self.log("validation_epoch_average with adv" + str(self.adversarial_training), epoch_average)
+        self.log("val_acc_best", self.val_acc_best.compute(), prog_bar=True, sync_dist=True)
+        self.validation_step_outputs.clear()  # free memory
 
+    def on_test_epoch_end(self) -> None:
+        epoch_average = torch.stack(self.test_step_outputs).mean()
+        self.log("validation_epoch_average with adv" + str(self.adversarial_training), epoch_average)
+        self.test_step_outputs.clear()  # free memory
 
 
 class CustomDataModule(pl.LightningDataModule):
-    def __init__(self, data_file, batch_size=64):
+    def __init__(self, data_file, batch_size,num_workers):
         super().__init__()
         self.data_file = data_file
         self.batch_size = batch_size
+        self.num_workers = num_workers
 
     def prepare_data(self):
         pass
@@ -111,10 +170,10 @@ class CustomDataModule(pl.LightningDataModule):
         self.test_dataset = TensorDataset(torch.tensor(xtest), torch.tensor(ytest))
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True,num_workers=self.num_workers)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size)
+        return DataLoader(self.val_dataset, batch_size=self.batch_size,num_workers=self.num_workers)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size,num_workers=self.num_workers)
