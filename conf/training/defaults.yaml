@@ -12,8 +12,8 @@ training_params:
     max_epochs: 70
     val_split: 0.15
     val: True
-    limit_train_batches: 0.25 # run through only 25% of the training set each epoch
-    overfit_batches: 2 # overfit on 10 of the same batches
+    limit_train_batches: 0.5 # run through only 25% of the training set each epoch
+    overfit_batches: 1000 # overfit on 10 of the same batches
     adversarial_attack: False
   data_module_params:
     batch_size: 16
@@ -25,7 +25,7 @@ training_params:
     lr: 5e-4
   
   features_list:
-    - EEG_Fpz-CZ
-    - EEG_PZ-Oz
+    #- EEG_Fpz-CZ
+    #- EEG_PZ-Oz
     - EOG_horizontal
-    - EMB_submental
+    #- EMB_submental

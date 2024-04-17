@@ -1,6 +1,7 @@
 transformer_encoder:
-  _target_: src.utils.pyg_model_zoo.TransformerEncoder
+  _target_: src.utils.pyg_model_zoo.TransformerAdv
   in_dim: 600
+  channels: 1 #Number of channels of cassette used for training
   hidden_dim: 512
   n_layers: 6
   nhead: 8
