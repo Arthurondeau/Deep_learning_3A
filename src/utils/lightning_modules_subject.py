@@ -68,10 +68,11 @@ class Model(pl.LightningModule):
         # Compute losses
         loss_sleep_stage = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
         loss_subject = self.criterion_subject(subject_output, y[:,1].long())
-
-        # Total loss
-        loss = loss_sleep_stage - loss_subject
-
+        if self.adversarial_attack:
+            # Total loss
+            loss = loss_sleep_stage - loss_subject
+        else :
+            loss = loss_sleep_stage
         self.train_loss(loss)
         self.train_metrics(sleep_stage_output, y[:,0])
         self.train_step_outputs.append(loss)
@@ -103,8 +104,11 @@ class Model(pl.LightningModule):
         loss_sleep_stage = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
         loss_subject = self.criterion_subject(subject_output, y[:,1].long())
 
-        # Total loss
-        loss = loss_sleep_stage - loss_subject
+        if self.adversarial_attack:
+            # Total loss
+            loss = loss_sleep_stage - loss_subject
+        else :
+            loss = loss_sleep_stage
         self.val_loss(loss)
         self.val_metrics(sleep_stage_output, y[:,0])
         self.validation_step_outputs.append(loss)
@@ -119,8 +123,11 @@ class Model(pl.LightningModule):
         loss_sleep_stage = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
         loss_subject = self.criterion_subject(subject_output, y[:,1].long())
 
-        # Total loss
-        loss = loss_sleep_stage - loss_subject
+        if self.adversarial_attack:
+            # Total loss
+            loss = loss_sleep_stage - loss_subject
+        else :
+            loss = loss_sleep_stage
         self.test_loss(loss)
         self.test_metrics(sleep_stage_output, y[:,0])
         self.test_step_outputs.append(loss)
