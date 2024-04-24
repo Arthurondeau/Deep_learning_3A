@@ -5,9 +5,9 @@ defaults:
 
 save_dir : ${hydra:runtime.cwd}/data
 local_data_npz: ${hydra:runtime.cwd}/data/5-cassette
-training_data: ${hydra:runtime.cwd}/data/cassette_with_patient_label_EOG_horizontal.pck
+training_data: ${hydra:runtime.cwd}/data/EEG_PZ-Oz_EOG_horizontal.pickle
 
 training_args :
-  model_type: "transformer_encoder"
+  model_type: "transformer_encoder" #Choose your model type
 
 

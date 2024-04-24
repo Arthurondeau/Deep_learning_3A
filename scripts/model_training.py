@@ -54,7 +54,7 @@ def train_training(config: DictConfig) -> None:
     model = hydra.utils.instantiate(config["model_dict"][model_type])
     
     #### PYTORCH LIGHTNING 
-    model = lightning_modules_subject.Model(
+    model = lightning_modules.Model(
         model,
         optimization_params=config["training"]["training_params"]["optimization_params"],
         n_classes=config["model_dict"]["transformer_encoder"]["n_classes"],
@@ -62,7 +62,7 @@ def train_training(config: DictConfig) -> None:
     )
 
     dataset_path = config["training_data"]
-    datamodule = lightning_modules_subject.CustomDataModule(
+    datamodule = lightning_modules.CustomDataModule(
         dataset_path,
         config["training"]["training_params"]["data_module_params"]["batch_size"],
         config["training"]["training_params"]["data_module_params"]["num_workers"],

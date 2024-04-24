@@ -8,15 +8,15 @@ training_params:
   n_classes: 6
   trainer_params:
     accumulate_grad_batches: 1
-    early_stopping_patience: 30
+    early_stopping_patience: 5
     max_epochs: 70
     val_split: 0.15
     val: True
     limit_train_batches: 0.5 # run through only 25% of the training set each epoch
-    overfit_batches: 1000 # overfit on 10 of the same batches
+    overfit_batches: None # overfit on 10 of the same batches
     adversarial_attack: False
   data_module_params:
-    batch_size: 16
+    batch_size: 8
     num_workers: 8
   optimization_params:
     l2_coeff: 5e-4
