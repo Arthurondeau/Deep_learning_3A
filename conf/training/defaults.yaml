@@ -13,7 +13,7 @@ training_params:
     val_split: 0.15
     val: True
     limit_train_batches: 0.005 # run through only 25% of the training set each epoch
-    overfit_batches: None # overfit on 10 of the same batches
+    overfit_batches: 10 # overfit on 10 of the same batches
     adversarial_attack: False
   data_module_params:
     batch_size: 8

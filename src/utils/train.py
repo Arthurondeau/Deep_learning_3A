@@ -58,7 +58,7 @@ def model_training(
         enable_checkpointing=False,
         inference_mode = not trainer_params["adversarial_attack"],
         limit_train_batches=trainer_params["limit_train_batches"],
-        #overfit_batches=trainer_params["overfit_batches"],
+        overfit_batches=trainer_params["overfit_batches"],
     )
     trainer.fit(model=model, datamodule=data_input)
     log.info("Finished training.")

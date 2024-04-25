@@ -62,6 +62,8 @@ class Model(pl.LightningModule):
             logits = self.forward(perturbed_x)
         else : 
             logits = self.forward(x)
+
+        print('logits',logits)
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
         self.train_loss(loss)

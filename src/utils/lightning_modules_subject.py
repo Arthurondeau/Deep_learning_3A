@@ -64,15 +64,13 @@ class Model(pl.LightningModule):
         x, y = batch
         # Forward pass
         sleep_stage_output, subject_output = self.forward(x)
-
         # Compute losses
-        loss_sleep_stage = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
-        loss_subject = self.criterion_subject(subject_output, y[:,1].long())
-        if self.adversarial_attack:
+        if self.adversarial_attack == True:
             # Total loss
-            loss = loss_sleep_stage - loss_subject
+            loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long()) - self.criterion_subject(subject_output, y[:,1].long())
         else :
-            loss = loss_sleep_stage
+            loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
+
         self.train_loss(loss)
         self.train_metrics(sleep_stage_output, y[:,0])
         self.train_step_outputs.append(loss)
@@ -101,14 +99,11 @@ class Model(pl.LightningModule):
         # Forward pass
         sleep_stage_output, subject_output = self.forward(x)
         # Compute losses
-        loss_sleep_stage = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
-        loss_subject = self.criterion_subject(subject_output, y[:,1].long())
-
-        if self.adversarial_attack:
+        if self.adversarial_attack == True:
             # Total loss
-            loss = loss_sleep_stage - loss_subject
+            loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long()) - self.criterion_subject(subject_output, y[:,1].long())
         else :
-            loss = loss_sleep_stage
+            loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
         self.val_loss(loss)
         self.val_metrics(sleep_stage_output, y[:,0])
         self.validation_step_outputs.append(loss)
@@ -120,14 +115,11 @@ class Model(pl.LightningModule):
         sleep_stage_output, subject_output = self.forward(x)
 
         # Compute losses
-        loss_sleep_stage = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
-        loss_subject = self.criterion_subject(subject_output, y[:,1].long())
-
-        if self.adversarial_attack:
+        if self.adversarial_attack == True:
             # Total loss
-            loss = loss_sleep_stage - loss_subject
+            loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long()) - self.criterion_subject(subject_output, y[:,1].long())
         else :
-            loss = loss_sleep_stage
+            loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
         self.test_loss(loss)
         self.test_metrics(sleep_stage_output, y[:,0])
         self.test_step_outputs.append(loss)
