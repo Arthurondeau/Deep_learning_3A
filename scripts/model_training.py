@@ -16,7 +16,10 @@ from src.utils import (
 import torch.nn as nn
 
 log = logging.getLogger(__name__)
+import torch.multiprocessing as mp
 
+# Set the sharing strategy to 'file_system'
+mp.set_sharing_strategy('file_system')
 
 @hydra.main(
     version_base=None,

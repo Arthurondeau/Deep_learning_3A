@@ -2,9 +2,9 @@ transformer_encoder:
   _target_: src.utils.pyg_model_zoo.TransformerEncoder
   in_dim: 600
   channels: 1 #Number of channels of cassette used for training
-  hidden_dim: 512
+  hidden_dim: 8
   n_layers: 6
-  nhead: 8
+  nhead: 6
   n_classes: 6
   dropout: 0.1
 
@@ -31,8 +31,9 @@ CNNClassifier:
 RNNClassifier:
   _target_: src.utils.pyg_model_zoo.RNNClassifier
   in_dim: 600
-  num_layers:
-  num_classes:
+  hidden_size: 256
+  num_layers: 5
+  num_classes: 6
   rnn_type: 'LSTM'
 
 

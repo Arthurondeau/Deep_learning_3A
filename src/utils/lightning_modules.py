@@ -8,6 +8,8 @@ import os
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import MLFlowLogger
 
+
+
 class Model(pl.LightningModule):
     def __init__(
         self,
@@ -63,7 +65,6 @@ class Model(pl.LightningModule):
         else : 
             logits = self.forward(x)
 
-        print('logits',logits)
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
         self.train_loss(loss)
@@ -172,10 +173,10 @@ class CustomDataModule(pl.LightningDataModule):
         self.test_dataset = TensorDataset(torch.tensor(xtest), torch.tensor(ytest))
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True,num_workers=self.num_workers)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True,num_workers=self.num_workers,pin_memory=False)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size,num_workers=self.num_workers)
+        return DataLoader(self.val_dataset, batch_size=self.batch_size,num_workers=self.num_workers,pin_memory=False)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size,num_workers=self.num_workers)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size,num_workers=self.num_workers,pin_memory=False)

@@ -5,7 +5,7 @@ defaults:
 
 save_dir : ${hydra:runtime.cwd}/data
 local_data_npz: ${hydra:runtime.cwd}/data/5-cassette
-training_data: ${hydra:runtime.cwd}/data/cassette-th-data.pck
+training_data: ${hydra:runtime.cwd}/data/cassetteEOG_horizontal.pck
 
 training_args :
   model_type: "transformer_encoder" #Choose your model type

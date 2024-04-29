@@ -27,7 +27,7 @@ def pipeline(config: DictConfig) :
 
     datad=config["local_data_npz"]
     fnames = glob.glob(os.path.join(datad, "*npz.gz"))
-    features_list = config["dgi"]["training_params"]["features_list"]
+    features_list = config["training"]["training_params"]["features_list"]
     features_index_dict = {'EEG_Fpz-CZ':0,'EEG_PZ-Oz':1,'EOG_horizontal':2,'EMB_submental':3}
     features_index = [features_index_dict[feature] for feature in features_list]
     
