@@ -7,7 +7,7 @@ mlflow:
 training_params:
   n_classes: 6
   trainer_params:
-    accumulate_grad_batches: 16
+    accumulate_grad_batches: 4
     early_stopping_patience: 5
     max_epochs: 70
     val_split: 0.15
@@ -16,7 +16,7 @@ training_params:
     overfit_batches: None # overfit on 10 of the same batches
     adversarial_attack: False
   data_module_params:
-    batch_size: 4
+    batch_size: 32
     num_workers: 4
   optimization_params:
     l2_coeff: 5e-4

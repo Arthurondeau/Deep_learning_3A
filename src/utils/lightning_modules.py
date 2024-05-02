@@ -7,7 +7,7 @@ import pickle
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import MLFlowLogger
-
+import numpy as np
 
 
 class Model(pl.LightningModule):
@@ -67,10 +67,10 @@ class Model(pl.LightningModule):
 
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
-        self.train_loss(loss)
+        self.train_loss(loss.detach())
         self.train_metrics(logits, y)
-        self.train_step_outputs.append(loss)
-        self.log("train_loss", loss, on_epoch=True, prog_bar=True)
+        self.train_step_outputs.append(loss.detach())
+        self.log("train_loss", loss.detach(), on_epoch=True, prog_bar=True)
         return {"loss": loss}
 
     def adversarial_attack(self, x: torch.Tensor, y: torch.Tensor, epsilon: float = 0.1, alpha: float = 0.01, num_iter: int = 10) -> torch.Tensor:
@@ -92,6 +92,8 @@ class Model(pl.LightningModule):
 
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         x, y = batch
+        print('data shape',x.size())
+
         if self.adversarial_training : 
             # Generate adversarial examples using PGD
             with torch.enable_grad():
@@ -102,6 +104,7 @@ class Model(pl.LightningModule):
             logits = self.forward(x)
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
+        loss = loss.detach()
         self.val_loss(loss)
         self.val_metrics(logits, y)
         self.validation_step_outputs.append(loss)
@@ -118,6 +121,7 @@ class Model(pl.LightningModule):
             logits = self.forward(x)
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
+        loss = loss.detach()
         self.val_loss(loss)
         self.val_metrics(logits, y)
         self.test_step_outputs.append(loss)
@@ -167,7 +171,6 @@ class CustomDataModule(pl.LightningDataModule):
         split_index = len(xvalid) // 2
         xtest, ytest = xvalid[:split_index], yvalid[:split_index]
         xvalid, yvalid = xvalid[split_index:], yvalid[split_index:]
-
         self.train_dataset = TensorDataset(torch.tensor(xtrain), torch.tensor(ytrain))
         self.val_dataset = TensorDataset(torch.tensor(xvalid), torch.tensor(yvalid))
         self.test_dataset = TensorDataset(torch.tensor(xtest), torch.tensor(ytest))

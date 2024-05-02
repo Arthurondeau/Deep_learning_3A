@@ -30,12 +30,29 @@ CNNClassifier:
 
 RNNClassifier:
   _target_: src.utils.pyg_model_zoo.RNNClassifier
-  in_dim: 600
-  hidden_size: 256
-  num_layers: 5
+  in_dim: 1
+  hidden_size: 32
+  num_layers: 8
   num_classes: 6
   rnn_type: 'LSTM'
 
+
+BiRNNClassifier:
+  _target_: src.utils.pyg_model_zoo.BiRNNClassifier
+  in_dim: 1  # Input dimensionality of each time step
+  hidden_size: 32  # Hidden size of the RNN layer
+  num_layers: 8  # Number of RNN layers
+  num_classes: 6  # Number of output classes
+  rnn_type: LSTM  # Choose either LSTM or GRU
+
+
+StackedBiRNNClassifier:
+  _target_: src.utils.pyg_model_zoo.StackedBiRNNClassifier
+  in_dim: 1  # Input dimensionality of each time step
+  hidden_size: 32  # Hidden size of the RNN layer
+  num_layers: 8  # Number of RNN layers
+  num_classes: 6  # Number of output classes
+  rnn_type: LSTM  # Choose either LSTM or GRU
 
 
 

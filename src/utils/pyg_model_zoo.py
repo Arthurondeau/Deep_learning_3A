@@ -28,6 +28,7 @@ class CNNClassifier(nn.Module):
         self.fc = nn.Linear(self.fc_input_size, n_classes)
 
     def forward(self, x):
+        x = x.unsqueeze(dim=1)
         x = torch.relu(self.batchnorm1(self.conv1(x)))
         x = self.maxpool(x)
         x = torch.relu(self.batchnorm2(self.conv2(x)))
@@ -51,13 +52,20 @@ class RNNClassifier(nn.Module):
         elif rnn_type == 'GRU':
             self.rnn = nn.GRU(in_dim, hidden_size, num_layers, batch_first=True)        
         self.fc = nn.Linear(hidden_size, num_classes)
-
     def forward(self, x):
+        x = x.unsqueeze(dim=2) #the sequence length is 600 and features dim 1
+        # Initialize hidden states with correct shapes
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        if isinstance(self.rnn, nn.LSTM):
+            c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+            # Pass both h0 and c0 to LSTM
+            out, _ = self.rnn(x, (h0, c0))
+        else:
+            # For GRU, pass only h0
+            out, _ = self.rnn(x, h0)
         
-        out, _ = self.rnn(x, (h0, c0)) if isinstance(self.rnn, nn.LSTM) else self.rnn(x, h0)
-        out = self.fc(out[:, -1, :])  # Take the output of the last time step
+        # Take the output of the last time step
+        out = self.fc(out[:, -1, :])  
         return out
     
 
@@ -77,6 +85,7 @@ class BiRNNClassifier(nn.Module):
         self.fc = nn.Linear(hidden_size*2, num_classes)  # Multiply by 2 for bidirectional
 
     def forward(self, x):
+        x = x.unsqueeze(dim=2) #the sequence length is 600 and features dim 1
         h0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size).to(x.device)  # Multiply by 2 for bidirectional
         c0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size).to(x.device)  # Multiply by 2 for bidirectional
         
@@ -103,6 +112,8 @@ class StackedBiRNNClassifier(nn.Module):
         self.fc = nn.Linear(hidden_size*2, num_classes)  # Multiply by 2 for bidirectional
 
     def forward(self, x):
+        x = x.unsqueeze(dim=2) #the sequence length is 600 and features dim 1
+
         for layer in self.rnn_layers:
             out, _ = layer(x)
             x = out
