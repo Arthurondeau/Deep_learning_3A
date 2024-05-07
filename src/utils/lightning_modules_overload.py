@@ -28,9 +28,9 @@ class Model(pl.LightningModule):
         self.logger: MLFlowLogger
         self.trainer: pl.Trainer
         self.adversarial_training = adversarial_training
-        self.train_outputs = {"train_loss": [], "train_acc": []}
-        self.validation_outputs = {"val_loss": [], "val_acc": []}
-        self.test_outputs = {"test_loss": [], "test_acc": []}
+        self.train_step_outputs = []
+        self.validation_step_outputs = []
+        self.test_step_outputs = []
 
         if n_classes > 2:
             metrics_params = {"task": "multiclass", "num_classes": n_classes}
@@ -43,18 +43,15 @@ class Model(pl.LightningModule):
                 AveragePrecision(**metrics_params),
             ])
 
-            train_metrics_collect = MetricCollection([
-                Accuracy(**metrics_params)
-            ])
+            self.train_metrics = metrics.clone(prefix="train_")
+            self.val_metrics = metrics.clone(prefix="val_")
+            self.train_loss = MeanMetric()
+            self.train_acc_best = MaxMetric()
+            self.val_loss = MeanMetric()
+            self.val_acc_best = MaxMetric()
         else:
             raise ValueError("Number of classes must be greater than 2.")
-        self.train_metrics = metrics.clone(prefix="train_")
-        self.val_metrics = metrics.clone(prefix="val_")
-        self.test_metrics = metrics.clone(prefix='test_')
-        self.train_loss = MeanMetric()
-        self.train_acc_best = MaxMetric()
-        self.val_loss = MeanMetric()
-        self.val_acc_best = MaxMetric()
+
     def forward(self, data: torch.Tensor) -> torch.Tensor:
         return self.model(data)
 
@@ -62,47 +59,18 @@ class Model(pl.LightningModule):
         x, y = batch
         if self.adversarial_training : 
             # Generate adversarial examples using PGD
-            with torch.enable_grad():
-                perturbed_x = self.adversarial_attack(x, y)
+            perturbed_x = self.adversarial_attack(x, y)
             # Compute logits for adversarial examples
             logits = self.forward(perturbed_x)
         else : 
             logits = self.forward(x)
+
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
-        self.log(
-            "train/loss",
-            loss,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            batch_size=len(y),
-            sync_dist=True,
-        )
-        self.log("train_loss", loss.detach(),prog_bar=True)
-        self.train_outputs["train_loss"].append(loss.detach().clone())
-        self.train_metrics(logits.detach(), y)
-        acc = self.train_metrics.compute()["train_MulticlassAccuracy"]
-        self.log(
-            "train_acc",
-            acc.detach(),
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            batch_size=len(y),
-            sync_dist=True,
-        )
-
-        """
-        self.log_dict(
-            self.train_metrics,
-            logger=True,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            batch_size=len(y),
-            sync_dist=True,
-        )"""
+        self.train_loss(loss.detach())
+        self.train_metrics(logits, y)
+        self.train_step_outputs.append(loss.detach())
+        self.log("train_loss", loss.detach(), on_epoch=True, prog_bar=True)
         return {"loss": loss}
 
     def adversarial_attack(self, x: torch.Tensor, y: torch.Tensor, epsilon: float = 0.1, alpha: float = 0.01, num_iter: int = 10) -> torch.Tensor:
@@ -134,22 +102,12 @@ class Model(pl.LightningModule):
             logits = self.forward(x)
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
-        self.log("val_loss", loss.detach(), on_step=True, on_epoch=False,prog_bar=True)
-        self.validation_outputs["val_loss"].append(loss.detach().clone())
-        self.val_metrics(logits.detach(), y)
-        acc = self.val_metrics.compute()["val_MulticlassAccuracy"]
-        self.log("val_acc", acc.detach(), on_step=True, on_epoch=False,prog_bar=True)
-        """
-        self.log_dict(
-            self.train_metrics,
-            logger=True,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            batch_size=len(y),
-            sync_dist=True,
-        )
-        """
+        loss = loss.detach()
+        self.val_loss(loss)
+        self.val_metrics(logits, y)
+        self.validation_step_outputs.append(loss)
+        self.log("val_loss:", loss, on_epoch=True, prog_bar=True)
+
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         x, y = batch
         if self.adversarial_training : 
@@ -161,32 +119,37 @@ class Model(pl.LightningModule):
             logits = self.forward(x)
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
-        self.test_outputs["test_loss"].append(loss.detach().clone())
-        self.test_metrics(logits.detach(), y)
+        loss = loss.detach()
+        self.val_loss(loss)
+        self.val_metrics(logits, y)
+        self.test_step_outputs.append(loss)
+        self.log("test_loss", loss, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[Dict[str, torch.optim.lr_scheduler._LRScheduler]]]:
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         scheduler = {"scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)}
         return [optimizer], [scheduler]
 
-
     def on_train_epoch_end(self) -> None:
+        epoch_average = torch.stack(self.train_step_outputs).mean()
         acc = self.train_metrics.compute()["train_MulticlassAccuracy"]
         self.train_acc_best(acc)
+        self.log("train_epoch_average with adv" + str(self.adversarial_training), epoch_average)
         self.log("train_acc_best", self.train_acc_best.compute(), prog_bar=True, sync_dist=True)
+        self.train_step_outputs.clear()  # free memory
 
     def on_validation_epoch_end(self) -> None:
+        epoch_average = torch.stack(self.validation_step_outputs).mean()
         acc = self.val_metrics.compute()["val_MulticlassAccuracy"]
         self.val_acc_best(acc)
+        self.log("validation_epoch_average with adv" + str(self.adversarial_training), epoch_average)
         self.log("val_acc_best", self.val_acc_best.compute(), prog_bar=True, sync_dist=True)
+        self.validation_step_outputs.clear()  # free memory
 
     def on_test_epoch_end(self) -> None:
-        acc = self.test_metrics.compute()["test_MulticlassAccuracy"]
-        self.test_acc_best(acc)
-        self.log("test_acc_best", self.test_acc_best.compute(), prog_bar=True, sync_dist=True)
-
-
-
+        epoch_average = torch.stack(self.test_step_outputs).mean()
+        self.log("validation_epoch_average with adv" + str(self.adversarial_training), epoch_average)
+        self.test_step_outputs.clear()  # free memory
 
 
 class CustomDataModule(pl.LightningDataModule):
