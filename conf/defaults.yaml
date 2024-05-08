@@ -8,6 +8,6 @@ local_data_npz: ${hydra:runtime.cwd}/data/5-cassette
 training_data: ${hydra:runtime.cwd}/data/cassetteEOG_horizontal.pck
 
 training_args :
-  model_type: "BiRNNClassifier" #Choose your model type
+  model_type: "CNNClassifier" #Choose your model type
 
 

@@ -1,6 +1,6 @@
 mlflow:
-  #tracking_uri: ${hydra:runtime.cwd}/mlflow_runs
-  tracking_uri: mlflow_runs
+  tracking_uri: ${hydra:runtime.cwd}/mlflow_runs
+  #tracking_uri: mlflow_runs
   experiment_name: test
 
 

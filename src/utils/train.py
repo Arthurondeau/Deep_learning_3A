@@ -55,7 +55,7 @@ def model_training(
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
         devices="auto",
         accumulate_grad_batches=trainer_params["accumulate_grad_batches"],
-        enable_checkpointing=False,
+        enable_checkpointing=True,
         strategy='ddp_find_unused_parameters_true',
         inference_mode = not trainer_params["adversarial_attack"],
         #limit_train_batches=trainer_params["limit_train_batches"],
@@ -63,6 +63,7 @@ def model_training(
     )
     trainer.fit(model=model, datamodule=data_input)
     log.info("Finished training.")
-    mlflow.pytorch.log_model(model, "model")
-
+    #mlflow.pytorch.log_model(model, "models/")
+    #load the best checkpoint automatically and test it
+    trainer.test(ckpt_path="best",datamodule=data_input)
     return model

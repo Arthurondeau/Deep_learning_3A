@@ -37,8 +37,6 @@ class Model(pl.LightningModule):
 
             metrics = MetricCollection([
                 Accuracy(**metrics_params),
-                Recall(**metrics_params),
-                Precision(**metrics_params),
                 AUROC(**metrics_params),
                 AveragePrecision(**metrics_params),
             ])
@@ -55,6 +53,7 @@ class Model(pl.LightningModule):
         self.train_acc_best = MaxMetric()
         self.val_loss = MeanMetric()
         self.val_acc_best = MaxMetric()
+        self.test_acc_best = MaxMetric()
     def forward(self, data: torch.Tensor) -> torch.Tensor:
         return self.model(data)
 
@@ -83,6 +82,7 @@ class Model(pl.LightningModule):
         self.train_outputs["train_loss"].append(loss.detach().clone())
         self.train_metrics(logits.detach(), y)
         acc = self.train_metrics.compute()["train_MulticlassAccuracy"]
+        auc = self.train_metrics.compute()["train_MulticlassAUROC"]
         self.log(
             "train_acc",
             acc.detach(),
@@ -92,17 +92,16 @@ class Model(pl.LightningModule):
             batch_size=len(y),
             sync_dist=True,
         )
-
-        """
-        self.log_dict(
-            self.train_metrics,
-            logger=True,
+        self.log(
+            "train_auc",
+            auc.detach(),
             on_step=False,
             on_epoch=True,
             prog_bar=True,
             batch_size=len(y),
             sync_dist=True,
-        )"""
+        )
+
         return {"loss": loss}
 
     def adversarial_attack(self, x: torch.Tensor, y: torch.Tensor, epsilon: float = 0.1, alpha: float = 0.01, num_iter: int = 10) -> torch.Tensor:
@@ -138,18 +137,10 @@ class Model(pl.LightningModule):
         self.validation_outputs["val_loss"].append(loss.detach().clone())
         self.val_metrics(logits.detach(), y)
         acc = self.val_metrics.compute()["val_MulticlassAccuracy"]
+        auc = self.val_metrics.compute()["val_MulticlassAUROC"]
         self.log("val_acc", acc.detach(), on_step=True, on_epoch=False,prog_bar=True)
-        """
-        self.log_dict(
-            self.train_metrics,
-            logger=True,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            batch_size=len(y),
-            sync_dist=True,
-        )
-        """
+        self.log("val_auc", auc.detach(), on_step=True, on_epoch=False,prog_bar=True)
+
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         x, y = batch
         if self.adversarial_training : 
@@ -163,6 +154,10 @@ class Model(pl.LightningModule):
         loss = F.cross_entropy(logits, y.long())
         self.test_outputs["test_loss"].append(loss.detach().clone())
         self.test_metrics(logits.detach(), y)
+        acc = self.test_metrics.compute()["test_MulticlassAccuracy"]
+        auc = self.test_metrics.compute()["test_MulticlassAUROC"]
+        self.log("test_acc", acc.detach(), on_step=True, on_epoch=False,prog_bar=True)
+        self.log("test_auc", auc.detach(), on_step=True, on_epoch=False,prog_bar=True)
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[Dict[str, torch.optim.lr_scheduler._LRScheduler]]]:
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
