@@ -68,7 +68,8 @@ def pipeline(config: DictConfig) :
     ytrain, yvalid = np.transpose(ytrain), np.transpose(yvalid)
     # Convert to Torch tensors (assuming you are using PyTorch)
     xtrain, xvalid = th.FloatTensor(xtrain), th.FloatTensor(xvalid)
-    ytrain, yvalid = th.IntTensor(ytrain), th.IntTensor(yvalid)
+    ytrain, yvalid = th.IntTensor(ytrain), th.IntTensor(yvalid) 
+    print('ytrain',ytrain)
     # Reshape xtrain and xvalid tensors (Nb Samples,Input dim,channels) -> (Nb Samples,channels, Input dim)
     xtrain, xvalid = th.reshape(xtrain,(xtrain.size()[0],xtrain.size()[2],xtrain.size()[1])), th.reshape(xvalid,(xvalid.size()[0],xvalid.size()[2],xvalid.size()[1]))
 

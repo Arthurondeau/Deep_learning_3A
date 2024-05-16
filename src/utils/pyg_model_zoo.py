@@ -17,6 +17,7 @@ class CNNClassifier(nn.Module):
 
     def __init__(self, channels:int , in_dim:int, n_classes:int, num_filters:int =64, kernel_size:int =3, pool_size:int =2):
         super(CNNClassifier, self).__init__()
+        self.channels = channels
         self.conv1 = nn.Conv1d(in_channels=channels, out_channels=num_filters, kernel_size=kernel_size, padding=kernel_size // 2)
         self.conv2 = nn.Conv1d(in_channels=num_filters, out_channels=num_filters*2, kernel_size=kernel_size, padding=kernel_size // 2)
         self.maxpool = nn.MaxPool1d(kernel_size=pool_size)
@@ -28,7 +29,8 @@ class CNNClassifier(nn.Module):
         self.fc = nn.Linear(self.fc_input_size, n_classes)
 
     def forward(self, x):
-        x = x.unsqueeze(dim=1)
+        if self.channels ==1 : 
+            x = x.unsqueeze(dim=1)
         x = torch.relu(self.batchnorm1(self.conv1(x)))
         x = self.maxpool(x)
         x = torch.relu(self.batchnorm2(self.conv2(x)))

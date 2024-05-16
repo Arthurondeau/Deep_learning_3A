@@ -66,6 +66,7 @@ class Model(pl.LightningModule):
             # Compute logits for adversarial examples
             logits = self.forward(perturbed_x)
         else : 
+            y = y[:,0] #take only sleep labels
             logits = self.forward(x)
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
@@ -130,8 +131,10 @@ class Model(pl.LightningModule):
             # Compute logits for adversarial examples
             logits = self.forward(perturbed_x)
         else : 
+            y = y[:,0] #take only sleep labels
             logits = self.forward(x)
         # Compute loss using original labels
+        print('y size',y.size())
         loss = F.cross_entropy(logits, y.long())
         self.log("val_loss", loss.detach(), on_step=True, on_epoch=False,prog_bar=True)
         self.validation_outputs["val_loss"].append(loss.detach().clone())
@@ -149,6 +152,7 @@ class Model(pl.LightningModule):
             # Compute logits for adversarial examples
             logits = self.forward(perturbed_x)
         else : 
+            y = y[:,0] #take only sleep labels
             logits = self.forward(x)
         # Compute loss using original labels
         loss = F.cross_entropy(logits, y.long())
@@ -197,7 +201,7 @@ class CustomDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         with open(self.data_file, 'rb') as f:
             xtrain, xvalid, ytrain, yvalid = pickle.load(f)
-
+        print('shape ytrain',np.shape(ytrain))
         split_index = len(xvalid) // 2
         xtest, ytest = xvalid[:split_index], yvalid[:split_index]
         xvalid, yvalid = xvalid[split_index:], yvalid[split_index:]
