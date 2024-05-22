@@ -104,12 +104,14 @@ class Model(pl.LightningModule):
         )
 
         return {"loss": loss}
-
+    
     def adversarial_attack(self, x: torch.Tensor, y: torch.Tensor, epsilon: float = 0.1, alpha: float = 0.01, num_iter: int = 10) -> torch.Tensor:
         perturbed_x = x.clone().detach()
         for _ in range(num_iter):
             perturbed_x.requires_grad = True
             logits = self.forward(perturbed_x)
+            print('logits shape',logits.size())
+            print('y shape adv',y.size())
             loss = F.cross_entropy(logits, y.long())
             self.model.zero_grad()
             loss.backward()

@@ -62,17 +62,19 @@ class Model(pl.LightningModule):
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> Dict[str, torch.Tensor]:
         x, y = batch
+        sleep_label = y[:,0]
+        subject_label = y[:,1]
         # Forward pass
         sleep_stage_output, subject_output = self.forward(x)
         # Compute losses
         if self.adversarial_attack == True:
             # Total loss
-            loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long()) - self.criterion_subject(subject_output, y[:,1].long())
+            loss = self.criterion_sleep_stage(sleep_stage_output, sleep_label.long()) - self.criterion_subject(subject_output, subject_label.long())
         else :
-            loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
+            loss = self.criterion_sleep_stage(sleep_stage_output, sleep_label.long())
 
         self.train_loss(loss)
-        self.train_metrics(sleep_stage_output, y[:,0])
+        self.train_metrics(sleep_stage_output, sleep_label)
         self.train_step_outputs.append(loss)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         return {"loss": loss}
@@ -96,6 +98,8 @@ class Model(pl.LightningModule):
 
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         x, y = batch
+        sleep_label = y[:,0]
+        subject_label = y[:,1]
         # Forward pass
         sleep_stage_output, subject_output = self.forward(x)
         # Compute losses
@@ -111,6 +115,8 @@ class Model(pl.LightningModule):
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         x, y = batch
+        sleep_label = y[:,0]
+        subject_label = y[:,1]
         # Forward pass
         sleep_stage_output, subject_output = self.forward(x)
 

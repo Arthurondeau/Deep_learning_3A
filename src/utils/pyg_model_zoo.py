@@ -38,6 +38,35 @@ class CNNClassifier(nn.Module):
         x = x.view(x.size(0), -1)  # Flatten
         x = self.fc(x)
         return x
+    
+class CNNClassifier_adv(nn.Module):
+    """CNN Baseline Model"""
+
+    def __init__(self, channels:int , in_dim:int, n_classes:int, num_filters:int =64, kernel_size:int =3, pool_size:int =2):
+        super(CNNClassifier_adv, self).__init__()
+        self.channels = channels
+        self.conv1 = nn.Conv1d(in_channels=channels, out_channels=num_filters, kernel_size=kernel_size, padding=kernel_size // 2)
+        self.conv2 = nn.Conv1d(in_channels=num_filters, out_channels=num_filters*2, kernel_size=kernel_size, padding=kernel_size // 2)
+        self.maxpool = nn.MaxPool1d(kernel_size=pool_size)
+        self.batchnorm1 = nn.BatchNorm1d(num_filters)
+        self.batchnorm2 = nn.BatchNorm1d(num_filters*2)
+        
+        # Calculate output size after max pooling
+        self.fc_input_size = num_filters*2 * (in_dim // (pool_size**2))
+        self.sleep_stage_classifier = nn.Linear(self.fc_input_size, n_classes)
+        self.subject_classifier = nn.Linear(self.fc_input_size, 10)
+
+    def forward(self, x):
+        if self.channels ==1 : 
+            x = x.unsqueeze(dim=1)
+        x = torch.relu(self.batchnorm1(self.conv1(x)))
+        x = self.maxpool(x)
+        x = torch.relu(self.batchnorm2(self.conv2(x)))
+        x = self.maxpool(x)
+        x = x.view(x.size(0), -1)  # Flatten
+        sleep_stage_output = self.sleep_stage_classifier(x)
+        subject_output = self.subject_classifier(x)
+        return sleep_stage_output, subject_output
 
 
 

@@ -8,4 +8,4 @@ local_data_npz: ${hydra:runtime.cwd}/data/5-cassette
 training_data: ${hydra:runtime.cwd}/data/cassette_with_patient_label_EEG_Fpz-CZ_EEG_PZ-Oz_EOG_horizontal.pck
 
 training_args :
-  model_type: "CNNClassifier" #Choose your model type
+  model_type: "CNNClassifier_adv" #Choose your model type

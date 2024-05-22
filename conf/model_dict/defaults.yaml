@@ -28,6 +28,15 @@ CNNClassifier:
   kernel_size: 3 
   pool_size: 2
 
+CNNClassifier_adv:
+  _target_: src.utils.pyg_model_zoo.CNNClassifier_adv
+  channels: 3 #Number of channels of cassette used for training
+  in_dim: 600
+  n_classes: 6
+  num_filters: 64
+  kernel_size: 3 
+  pool_size: 2
+
 RNNClassifier:
   _target_: src.utils.pyg_model_zoo.RNNClassifier
   in_dim: 1

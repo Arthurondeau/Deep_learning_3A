@@ -14,7 +14,7 @@ training_params:
     val: True
     limit_train_batches: None # run through only 25% of the training set each epoch
     overfit_batches: None # overfit on 10 of the same batches
-    adversarial_attack: False
+    adversarial_attack: True
   data_module_params:
     batch_size: 32
     num_workers: 4
