@@ -74,7 +74,7 @@ class Model(pl.LightningModule):
             loss = self.criterion_sleep_stage(sleep_stage_output, sleep_label.long())
 
         self.train_loss(loss)
-        self.train_metrics(sleep_stage_output, sleep_label)
+        self.train_metrics(subject_output, subject_label)
         self.train_step_outputs.append(loss)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         return {"loss": loss}
@@ -109,7 +109,7 @@ class Model(pl.LightningModule):
         else :
             loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
         self.val_loss(loss)
-        self.val_metrics(sleep_stage_output, y[:,0])
+        self.val_metrics(subject_output, subject_label)
         self.validation_step_outputs.append(loss)
         self.log("val_loss:", loss, on_epoch=True, prog_bar=True)
 
@@ -127,7 +127,7 @@ class Model(pl.LightningModule):
         else :
             loss = self.criterion_sleep_stage(sleep_stage_output, y[:,0].long())
         self.test_loss(loss)
-        self.test_metrics(sleep_stage_output, y[:,0])
+        self.test_metrics(subject_output, subject_label)
         self.test_step_outputs.append(loss)
         self.log("test_loss", loss, on_epoch=True, prog_bar=True)
 

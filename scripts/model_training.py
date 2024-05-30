@@ -60,7 +60,7 @@ def train_training(config: DictConfig) -> None:
     model = lightning_modules_subject.Model(
         model,
         optimization_params=config["training"]["training_params"]["optimization_params"],
-        n_classes=config["model_dict"]["transformer_encoder"]["n_classes"],
+        n_classes=config["training"]["training_params"]["n_classes"],
         adversarial_training=config["training"]["training_params"]["trainer_params"]["adversarial_attack"],
     )
 
