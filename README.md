@@ -34,17 +34,9 @@ All training parameters can be accessed in the config file in conf/training/defa
 The model type used for training can be accessed in defaults config file at training_args:model_type where *model_type* should correspond to a key in 
 the config file in model_dict/defaults.yaml (where all models parameters are defined)
 
+## RUN a training
 **Running model_training.py will log results in tracking_uri folder based on mlflow workflow**  
 The folder can be accessed in conf/training/defaults.yaml with the key "tracking_uri".
-
-## Transfer data to remote storage
-By default, the code will store generated data locally, in the `data/`folder. Use pipe to copy it to the Bioimaging s3 bucket to save the results and share (the embeddings for instance)  
-
-- Running ```python scripts/copy_data.py``` will copy data for the current experiment from local to remote  
-
-```--target``` and ```--source``` can be added to copy specific folders. They should be in the format ```sequence,of,cfg["paths"],keys``` 
-
->  :warning: :warning: :warning: This script will override the target folder so be careful when using it. 
 
 ## Open run experiment with MLFLOW
 To see run experiment logs run *mlflow ui --backend-store-uri tracking_uri_folder_name -p ####*
