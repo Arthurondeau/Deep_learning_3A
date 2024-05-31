@@ -7,9 +7,6 @@
 [![Code QC](https://github.com/Sanofi-GitHub/aida-imaging-graphanalysis/actions/workflows/on-push.yaml/badge.svg)](https://github.com/Sanofi-GitHub/aida-imaging-graphanalysis/actions/workflows/on-push.yaml)
 [![coverage report](https://magellan-git.sanofi.com/root/ifgraphanalysis/badges/master/coverage.svg)](https://magellan-git.sanofi.com/root/ifgraphanalysis/commits/master)
 # SETUP
-- https://magellan.sanofi.com/pipeline/#/settings/profile 
-  - Add "DATABRICKS_TOKEN" attribute with token generated in https://sanofi-rwe-emea.cloud.databricks.com/#mlflow/experiments
-  - Add "DATABRICKS_HOST" attribute with value https://sanofi-rwe-emea.cloud.databricks.com/#mlflow/experiments
 
 - source conda_install.sh
 - source setup.sh
@@ -17,38 +14,29 @@
 Install Python VSCode extension
 Recommended vscode extensions: AutoDocstring, Sonarlint, GitLens
 
-Set vscode python interpreter: CTRL+Maj+P -> Python: Select interpreter -> /root/anaconda3/envs/ifgraphs
+Set vscode python interpreter: CTRL+Maj+P -> Python: Select interpreter -> /root/anaconda3/envs/DL3A
 
 # RUNNING
 
-> :warning: :warning: :warning: The data paths in the config are absolute and assume that you are working from Magellan SCRIPT_DIR
+> :warning: :warning: :warning: The data paths in the config aren't absolute and assume that you keep the same folder arborescence
 > This can be changed in the conf/defaults.yaml
 
-
-## Define a proper config for the experiment you want to run, taking the CD8_PD1_PDL1 template as model
+## All parameters and model's parameters are defined in config file with hydra library (allow to automatically instantiate models classes)
 Hydra config doc can be found here for additional details https://hydra.cc/docs/intro/
-- folder names for local data storage
-- `paths`:
-    - `patientGraphs_name`
-    - `subgraphs_name`
-- `graph_creation.cell_filtering` for both IMMUCAN and MOSCATO, which will define the cell populations taken into account for the study (e.g. CD8, PD1, and PDL1 in the CD8_PD1_PDL1 config)
-    - `detection_probability_filter`
-    - `features_to_keep`
-    - `features_to_filter`
-    - `features_to_normalize`
-- `dgi` `features_list` for both IMMUCAN and MOSCATO
 
 ## Run data processing steps to generate embeddings
-- ```python scripts/IMMUCAN/reformat_workflow_format.py``` will transform data from workflow sample and IMC1/2 to the right format
->  :warning: :warning: :warning: Developped in a rush, paths are hardcoded which is bad but I haven't had time yet to improve it
+- ```python scripts/npz_to_pck.py``` will transform raw data to subsampled data with indicated channels (in conf/training/defaults.yaml)
 
-Follow https://sanofi.atlassian.net/wiki/spaces/AIMOSC/pages/63835048885/Embeddings+generation+steps for the correct dataflow to generate embeddings
-- ```python scripts/data_processing_pipeline.py``` will run all the steps in the above flow and copy data on Magellan s3 after each steps
-- ```conf/curent_experiment.yaml``` has a ```hydra.sweeper.params``` section defining grid search-like set of parameters to run the pipeline with. add ```--multirun``` to trigger runs of the pipeline with all combinations of those parameters
-- add ```env=training``` to specify the env  
+## Define a proper training config
+All training parameters can be accessed in the config file in conf/training/defaults.yaml 
 
-**Running dgi_training.py will log results in Databricks to EXPERIMENTNAME_debugging whereas the env=training option would log it to EXPERIMENTNAME_training**  
-This enables to disregard dev runs from actual training runs
+## Models Zoo and how to choose one
+The model type used for training can be accessed in defaults config file at training_args:model_type where *model_type* should correspond to a key in 
+the config file in model_dict/defaults.yaml (where all models parameters are defined)
+
+**Running model_training.py will log results in tracking_uri folder based on mlflow workflow**  
+The folder can be accessed in conf/training/defaults.yaml with the key "tracking_uri".
+
 ## Transfer data to remote storage
 By default, the code will store generated data locally, in the `data/`folder. Use pipe to copy it to the Bioimaging s3 bucket to save the results and share (the embeddings for instance)  
 
@@ -58,10 +46,5 @@ By default, the code will store generated data locally, in the `data/`folder. Us
 
 >  :warning: :warning: :warning: This script will override the target folder so be careful when using it. 
 
-## Run dataset-specific analysis
-scrips/notebooks has some visualization notebooks for data viz, exploration etc
-### Immucan
-#### TLS Analysis
-  - sripts/IMMUCAN/tls_analysis
-    - tls_analysis_pipeline.py
-    - TLS_clustering.ipynb to viz results
+## Open run experiment with MLFLOW
+To see run experiment logs run *mlflow ui --backend-store-uri tracking_uri_folder_name -p ####*
