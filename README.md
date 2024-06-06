@@ -35,7 +35,7 @@ The model type used for training can be accessed in defaults config file at trai
 the config file in model_dict/defaults.yaml (where all models parameters are defined)
 
 ## RUN a training
-- Running ```python scripts/npz_to_pck.py``` will log results in tracking_uri folder based on mlflow workflow.
+- Running ```python scripts/model_training.py``` will log results in tracking_uri folder based on mlflow workflow.
 The folder can be accessed in conf/training/defaults.yaml with the key "tracking_uri".
 
 ## Open run experiment with MLFLOW
